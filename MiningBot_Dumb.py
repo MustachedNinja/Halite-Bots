@@ -25,29 +25,32 @@ while True:
         planets = game_map.all_planets()
 
         # find the closest planet
-        best_planet = planets[0]
-        best_distance = ship.calculate_distance_between(best_planet)
+        best_planet = None
+        best_distance = 5000
 
         for planet in planets:
-            if planet.is_owned():
-                    continue
+            if planet.is_owned() or planet.is_full():
+                continue
             temp_distance = ship.calculate_distance_between(planet)
             if temp_distance < best_distance:
                 best_distance = temp_distance
                 best_planet = planet
 
-        # If the ship can dock onto the planet, add such a move
-        if ship.can_dock(best_planet):
-            command_queue.append(ship.dock(best_planet))
-        # If not, attempt to move the ship closer to the planet
+        if best_planet is not None:
+            # If the ship can dock onto the planet, add such a move
+            if ship.can_dock(best_planet):
+                command_queue.append(ship.dock(best_planet))
+            # If not, attempt to move the ship closer to the planet
+            else:
+                navigate_command = ship.navigate(
+                    ship.closest_point_to(best_planet),
+                    game_map,
+                    speed=int(hlt.constants.MAX_SPEED),
+                    ignore_ships=True)
+                if navigate_command:
+                    command_queue.append(navigate_command)
         else:
-            navigate_command = ship.navigate(
-                ship.closest_point_to(best_planet),
-                game_map,
-                speed=int(hlt.constants.MAX_SPEED),
-                ignore_ships=True)
-            if navigate_command:
-                command_queue.append(navigate_command)
+            continue
 
     # Send commands to the game engine
     game.send_command_queue(command_queue)

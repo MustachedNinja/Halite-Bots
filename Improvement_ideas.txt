@@ -1,0 +1,10 @@
+Improvements:
+Add a function that keeps ships from crashing into each other
+When the nearest planet is captured by an enemy, attack the enemy first instead of finding an empty planet
+
+
+Potential new bot ideas:
+a predetermined percentage of bots are designated attacking bots while the other are mining
+something like a 40-attack and 60-mining split
+Possible improvement: first couple turns the bots are 100% mining and as time goes on
+Possible improvement: if the number of ships falls below a given number, convert more of them to mining
