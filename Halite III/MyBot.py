@@ -63,6 +63,8 @@ while True:
                     if temp_dist < best_dist:
                         best_dist = temp_dist
                         best_dropoff = dropoff
+
+                possible_moves =game_map.get_unsafe_moves(ship.position, best_dropoff.position)
                 new_position = best_dropoff.position
         
         elif game.turn_number > 2 and ship.halite_amount < 10:
@@ -84,7 +86,7 @@ while True:
             if new_position == ship.position:
                 command_queue.append(ship.stay_still())
             else:
-                command_queue.append(ship.move(random.choice(game_map.get_unsafe_moves(ship.position, new_position))))
+                command_queue.append(ship.move(game_map.naive_navigate(ship, new_position)))
         else:
             command_queue.append(ship.make_dropoff())
 
