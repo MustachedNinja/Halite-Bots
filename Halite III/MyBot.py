@@ -14,6 +14,8 @@ from hlt.positionals import Position
 # This library allows you to generate random numbers.
 import random
 
+import GenerateMove as MOVE
+
 # Logging allows you to save messages for yourself. This is required because the regular STDOUT
 #   (print statements) are reserved for the engine-bot communication.
 import logging
@@ -45,48 +47,48 @@ while True:
     #   end of the turn.
     command_queue = []
 
+    taken_pos = []
+
     for ship in me.get_ships():
 #         If ship is 75% full, move towards dock
 #         else: move towards location of greatest halite
         new_position = ship.position
         make_dropoff = False
-        if ship.halite_amount > 750:
-            # Finds the closest dropoff and sets new_position equal to its position
-            dropoffs = me.get_dropoffs()
-            if len(dropoffs) == 0:
-                make_dropoff == True
-            else:
-                best_dist = 500
-                best_dropoff = dropoffs[0]
-                for dropoff in dropoffs:
-                    temp_dist = game_map.calculate_distance(ship.position, dropoff.position)
-                    if temp_dist < best_dist:
-                        best_dist = temp_dist
-                        best_dropoff = dropoff
-
-                possible_moves =game_map.get_unsafe_moves(ship.position, best_dropoff.position)
-                new_position = best_dropoff.position
-        
-        elif game.turn_number > 2 and ship.halite_amount < 10:
-            new_position = ship.position
-        
-        else:
-            pos_list = ship.position.get_surrounding_cardinals()
+        while new_position in taken_pos:
+            if ship.halite_amount > 750:
+                # Finds the closest dropoff and sets new_position equal to its position
+                dropoffs = me.get_dropoffs()
+                if len(dropoffs) == 0:
+                    make_dropoff == True
+                else:
+                    best_dist = 500
+                    best_dropoff = dropoffs[0]
+                    for dropoff in dropoffs:
+                        temp_dist = game_map.calculate_distance(ship.position, dropoff.position)
+                        if temp_dist < best_dist:
+                            best_dist = temp_dist
+                            best_dropoff = dropoff
+                    new_position = best_dropoff.position
             
-            best_pos = ship.position
-            best_hal = game_map[best_pos].halite_amount
-            for pos in pos_list:
-#                if game_map[pos].ship == False:
-                    temp_hal = game_map[pos].halite_amount
-                    if temp_hal > best_hal:
-                        best_hal = temp_hal
-                        best_pos = pos
-            new_position = best_pos
+            else:
+                pos_list = ship.position.get_surrounding_cardinals()
+                
+                best_pos = ship.position
+                best_hal = game_map[best_pos].halite_amount
+                for pos in pos_list:
+    #                if game_map[pos].ship == False:
+                        temp_hal = game_map[pos].halite_amount
+                        if temp_hal > best_hal:
+                            best_hal = temp_hal
+                            best_pos = pos
+                new_position = best_pos
+        taken_pos.append(new_position)
         if make_dropoff == False:
             if new_position == ship.position:
                 command_queue.append(ship.stay_still())
             else:
-                command_queue.append(ship.move(game_map.naive_navigate(ship, new_position)))
+                
+                command_queue.append(ship.move(random.choice(game_map.get_unsafe_moves(ship.position, new_position))))
         else:
             command_queue.append(ship.make_dropoff())
 
