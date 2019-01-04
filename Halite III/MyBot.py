@@ -14,11 +14,12 @@ from hlt.positionals import Position
 # This library allows you to generate random numbers.
 import random
 
-import GenerateMove as MOVE
 
 # Logging allows you to save messages for yourself. This is required because the regular STDOUT
 #   (print statements) are reserved for the engine-bot communication.
 import logging
+
+TURTLE_RETURN_LIM = 500
 
 """ <<<Game Begin>>> """
 
@@ -35,6 +36,49 @@ logging.info("Successfully created bot! My Player ID is {}.".format(game.my_id))
 
 """ <<<Game Loop>>> """
 
+
+
+def selectFreePos(initial_pos, taken_pos):
+    pos_arr = initial_pos.get_surrounding_cardinals()
+    pos_arr.append(initial_pos)
+
+    return_arr = []
+    for pos in pos_arr:
+        if pos not in taken_pos:
+            return_arr.append(pos)
+    return return_arr
+
+def chooseMoveFromFree(taken_pos, ship, game_map, me):
+    pos_arr = selectFreePos(ship.position, taken_pos)
+    if ship.halite_amount > TURTLE_RETURN_LIM:
+        # Navigate towards the shipyard
+        best_pos = findClosest(pos_arr, me.shipyard.position, game_map)
+        if ship.position is me.shipyard.position:
+            best_pos = ship.position
+    elif ship.halite_amount < (game_map[ship.position].halite_amount * 0.1):
+        best_pos = ship.position
+    else:
+        # Choose the square with the most halite and go there
+        best_pos = None
+        best_halite = -1
+        for pos in pos_arr:
+            compare_halite = game_map[pos].halite_amount
+            if compare_halite > best_halite:
+                best_halite = compare_halite
+                best_pos = pos
+    return best_pos
+    
+
+def findClosest(pos_arr, destination, game_map):
+    best_pos = None
+    best_dist = 500
+    for pos in pos_arr:
+        temp_dist = game_map.calculate_distance(pos, destination)
+        if temp_dist < best_dist:
+            best_pos = pos
+            best_dist = temp_dist
+    return best_pos
+
 while True:
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
@@ -50,47 +94,16 @@ while True:
     taken_pos = []
 
     for ship in me.get_ships():
-#         If ship is 75% full, move towards dock
-#         else: move towards location of greatest halite
-        new_position = ship.position
-        make_dropoff = False
-        while new_position in taken_pos:
-            if ship.halite_amount > 750:
-                # Finds the closest dropoff and sets new_position equal to its position
-                dropoffs = me.get_dropoffs()
-                if len(dropoffs) == 0:
-                    make_dropoff == True
-                else:
-                    best_dist = 500
-                    best_dropoff = dropoffs[0]
-                    for dropoff in dropoffs:
-                        temp_dist = game_map.calculate_distance(ship.position, dropoff.position)
-                        if temp_dist < best_dist:
-                            best_dist = temp_dist
-                            best_dropoff = dropoff
-                    new_position = best_dropoff.position
-            
-            else:
-                pos_list = ship.position.get_surrounding_cardinals()
-                
-                best_pos = ship.position
-                best_hal = game_map[best_pos].halite_amount
-                for pos in pos_list:
-    #                if game_map[pos].ship == False:
-                        temp_hal = game_map[pos].halite_amount
-                        if temp_hal > best_hal:
-                            best_hal = temp_hal
-                            best_pos = pos
-                new_position = best_pos
+    
+        new_position = chooseMoveFromFree(taken_pos, ship, game_map, me)
+        
         taken_pos.append(new_position)
-        if make_dropoff == False:
-            if new_position == ship.position:
-                command_queue.append(ship.stay_still())
-            else:
-                
-                command_queue.append(ship.move(random.choice(game_map.get_unsafe_moves(ship.position, new_position))))
+        
+        if new_position == ship.position:
+            command_queue.append(ship.stay_still())
         else:
-            command_queue.append(ship.make_dropoff())
+            command_queue.append(ship.move(game_map.get_unsafe_moves(ship.position, new_position)[0]))
+
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
@@ -99,4 +112,5 @@ while True:
 
     # Send your moves back to the game environment, ending this turn.
     game.end_turn(command_queue)
+
 
