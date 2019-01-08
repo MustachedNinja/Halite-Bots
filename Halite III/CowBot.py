@@ -12,6 +12,7 @@ from hlt.positionals import Direction
 from hlt.positionals import Position
 
 import random
+import math
 import logging
 
 
@@ -34,8 +35,9 @@ MAX_REMAINING_HALITE = 50
 def findTotalHalite(game_map):
     # Iterate over all map cells and calculate the total halite
     total_halite = 0
-    for row in game_map.height:
-        for col in game_map.width:
+    
+    for row in range(game_map.height):
+        for col in range(game_map.width):
             pos = Position(row, col)
             total_halite += game_map[pos].halite_amount
     return total_halite
@@ -45,10 +47,12 @@ def isStationary(ship, game_map):
     # Determines if a ship is going to stay still this turn
     # Only moves if the ship is full or the position it is at has no more halite to farm
     if ship.is_full:
+        logging.info("SHIP FULL")
         return False
     elif ship.halite_amount < game_map[ship.position].halite_amount * 0.1:
         return True
     elif game_map[ship.position].halite_amount <= MAX_REMAINING_HALITE:
+        logging.info("EXCEDE MAX" + str(game_map[ship.position].halite_amount))
         return False
     else:
         return True
@@ -60,7 +64,7 @@ def selectMove(taken_pos, ship, game_map, me):
     pos_arr = findFreePos(ship.position, taken_pos)
     total_ship_halite = calculateTotalShipHalite(me, game_map)
     
-    if total_ship_halite > 1000:
+    if total_ship_halite > 1100:
         best_pos = None
         best_dist = 500
         for pos in pos_arr:
@@ -98,16 +102,36 @@ def calculateTotalShipHalite(me, game_map):
 
     for ship in ships:
         total_halite += ship.halite_amount
-        total_halite -= navigateHomeCost(me.shipyard.position, ship, game_map)
+#        total_halite -= navigateHomeCost(me.shipyard.position, ship, game_map)
     return total_halite
 
 
 def navigateHomeCost(destination, ship, game_map):
     # Find the cost for a ship to navigate to a given destination
     
+    total_cost = 0
+    temp_pos = ship.position
 
+    while temp_pos is not destination:
+        # Calcualte the cost for moving from this pos
+        total_cost += game_map[temp_pos].halite_amount
 
+        # Find the next pos that you are moving to
+        pos_arr = temp_pos.get_surrounding_cardinals()
+        best_pos = None
+        best_dist = 500
+        for pos in pos_arr:
+            dist = simpleDistance(pos, destination)
+            if dist < best_dist:
+                best_pos = pos
+                best_dist = dist
+        temp_pos = best_pos
+    return total_cost
 
+def simpleDistance(initial_pos, destination):
+    x_dif = initial_pos.x - destination.x
+    y_dif = initial_pos.y - destination.y
+    return math.sqrt(pow(x_dif, 2) + pow(y_dif, 2))
 
 """ <<<Game Loop>>> """
 
@@ -119,11 +143,14 @@ while True:
     game_map = game.game_map
 
     command_queue = []
-    total_halite = findTotalHalite(game_map)
+    # Currently finding total_halite is too expensive
+    # total_halite = findTotalHalite(game_map)
     collected_total = 0
     taken_pos = []
 
     all_ships = me.get_ships()
+
+    logging.info(len(all_ships))
 
     # Filter out the stationary ships first to handle collision avoidance
     for ship in all_ships:
@@ -133,14 +160,19 @@ while True:
             command_queue.append(ship.stay_still())
             collected_total += game_map[ship.position].halite_amount * 0.25
     
+    logging.info(len(all_ships))
+    
     # Find new moves for all the ships which will be moving this turn
     for ship in all_ships:
         new_pos = selectMove(taken_pos, ship, game_map, me)
         taken_pos.append(new_pos)
-        command_queue.append(ship.move(game_map.get_unsafe_moves(ship.position, new_position)[0]))
+        command_queue.append(ship.move(game_map.get_unsafe_moves(ship.position, new_pos)[0]))
         collected_total -= game_map[ship.position].halite_amount * 0.1
         
-    percent_collected = total_halite / collected_total
+    
+    percent_collected = 0.01
+    # Currently finding total_halite is too expensive
+    # percent_collected = collected_total / total_halite
 
     # If the percent collected per turn is less than a given percentage and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port.
