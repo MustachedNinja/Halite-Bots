@@ -15,21 +15,11 @@ import random
 import math
 import logging
 
-def findTotalHalite(game_map):
-    # Iterate over all map cells and calculate the total halite
-    total_halite = 0
-    
-    for row in range(game_map.height):
-        for col in range(game_map.width):
-            pos = Position(row, col)
-            total_halite += game_map[pos].halite_amount
-    return total_halite
+
 
 """ <<<Game Begin>>> """
 
 game = hlt.Game()
-
-total_halite = findTotalHalite(game.game_map)
 
 game.ready("MyPythonBot")
 
@@ -45,6 +35,17 @@ MAX_REMAINING_HALITE = 50
 
 """ <<<Functions>>> """
 # Define all the functions used in this bot
+
+
+def findTotalHalite(game_map):
+    # Iterate over all map cells and calculate the total halite
+    total_halite = 0
+    
+    for row in range(game_map.height):
+        for col in range(game_map.width):
+            pos = Position(row, col)
+            total_halite += game_map[pos].halite_amount
+    return total_halite
 
 
 def isStationary(ship, game_map, taken_pos):
@@ -155,7 +156,7 @@ def shipSpawnRequirement(percent_collected, me, constants, game_map, taken_pos, 
         return False
     elif game_map[me.shipyard].is_occupied:
         return False
-    elif percent_collected > 0.15:
+    elif game.turn_number > 200:
         return False
     elif me.shipyard.position in taken_pos:
         return False
@@ -175,7 +176,8 @@ while True:
     game_map = game.game_map
 
     command_queue = []
-
+    # Currently finding total_halite is too expensive
+    # total_halite = findTotalHalite(game_map)
     collected_total = 0
     taken_pos = []
 
@@ -200,10 +202,10 @@ while True:
         command_queue.append(ship.move(game_map.get_unsafe_moves(ship.position, new_pos)[0]))
         collected_total -= game_map[ship.position].halite_amount * 0.1
         
-    # Calculate how much we collected
-    percent_collected = collected_total / total_halite
-    # Update total_halite (since calculating the exact number is too expensive, we are using a rough approximation)
-    total_halite -= collected_total * len(game.players)
+    
+    percent_collected = 0.01
+    # Currently finding total_halite is too expensive
+    # percent_collected = collected_total / total_halite
 
     # If the percent collected per turn is less than a given percentage and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port.
