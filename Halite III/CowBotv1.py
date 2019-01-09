@@ -53,8 +53,6 @@ def isStationary(ship, game_map, taken_pos):
     # Only moves if the ship is full or the position it is at has no more halite to farm
     if ship.is_full:
         return False
-    elif not freeSurrounding(ship.position, game_map):
-        return True
     elif ship.halite_amount < game_map[ship.position].halite_amount * 0.1:
         return True
     elif game_map[ship.position].halite_amount <= MAX_REMAINING_HALITE:
